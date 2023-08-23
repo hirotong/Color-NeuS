@@ -66,7 +66,7 @@ class NeuS_Trainer(ModuleAbstract, nn.Module):
         self.lambda_fine = cfg.LOSS.get('LAMBDA_FINE', 1.0)
         self.lambda_eikonal = cfg.LOSS.get('LAMBDA_EIKONAL', 0.1)
         self.lambda_mask = cfg.LOSS.get('LAMBDA_MASK', 0.0)
-        self.lambda_relight = cfg.LOSS.get('LAMBDA_RELIGHT', 1.0)
+        self.lambda_relight = cfg.LOSS.get('LAMBDA_RELIGHT', 0.0)
         rgb_loss_type = cfg.LOSS.get('RGB_LOSS_TYPE', 'mse')
         assert self.lambda_fine != 0 and self.lambda_eikonal != 0
         if cfg.RENDERER.TYPE == 'Color_NeuS':

@@ -5,7 +5,7 @@ from .dtu import DTU
 from .iho_video import IHO_VIDEO
 from .omniobject3d import OmniObject3D
 from .bmvs import BlendedMVS
-
+from .iqscan import IQScan
 
 def create_dataset(cfg: CN, data_preset: CN):
     """
