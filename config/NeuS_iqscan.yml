@@ -1,7 +1,7 @@
 DATASET:
   TYPE: IQScan
   DATA_ROOT: /home/jinguang/dataset
-  RADIUS_RATIO: 1.5
+  RADIUS_RATIO: 1.2
 
 DATA_PRESET:
   FX_ONLY: False
@@ -15,9 +15,9 @@ MODEL:
   EVAL_RAY_SIZE: 1024
   NORMALIZE_DIR: True
   FOCAL_ORDER: 2
-  LEARN_FOCAL: True
-  LEARN_R: True
-  LEARN_T: True
+  LEARN_FOCAL: False
+  LEARN_R: False
+  LEARN_T: False
   MASK_RATE: [0.5, 0.8]
   POSE_MODE: 6d
 

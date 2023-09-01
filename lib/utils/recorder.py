@@ -36,7 +36,7 @@ class Recorder:
         eval_only: bool = False,
     ):
         if not eval_only:
-            assert exp_id in ["default", "dbg"] or self.get_git_commit(), "MUST commit before the experiment!"
+            assert exp_id in ["default", "dbg", "neus"] or self.get_git_commit(), "MUST commit before the experiment!"
         self.eval_only = eval_only
         self.timestamp = time.strftime("%Y_%m%d_%H%M_%S", time.localtime(time_f if time_f else time.time()))
         self.exp_id = exp_id

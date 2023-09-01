@@ -1,13 +1,20 @@
 import os
+
 import cv2
-import torch
 import numpy as np
+import torch
 import torchvision.transforms.functional as tvF
-from lib.utils.builder import DATASET
+import trimesh
 from termcolor import colored
-from lib.utils.logger import logger
-from lib.utils.read_cameras import read_cameras_binary, read_images_binary, read_points3d_binary
+
+from lib.utils.builder import DATASET
 from lib.utils.etqdm import etqdm
+from lib.utils.logger import logger
+from lib.utils.read_cameras import (
+    read_cameras_binary,
+    read_images_binary,
+    read_points3d_binary,
+)
 from lib.utils.transform import load_K_Rt_from_P
 
 
@@ -32,7 +39,9 @@ class IQScan(torch.utils.data.Dataset):
         imdata = read_images_binary(os.path.join(self.data_path, "sparse/0/images.bin"))
         imdata = sorted(imdata.items(), reverse=False)
 
-        xyz_world = np.array([world_pts[p_id].xyz for p_id in world_pts])
+        # xyz_world = np.array([world_pts[p_id].xyz for p_id in world_pts])
+        pcd = trimesh.load(os.path.join(self.data_path, "sparse_points_interest.ply"))
+        xyz_world = np.array(pcd.vertices)
         origin = xyz_world.mean(0)  # (3,)
         radius = np.percentile(np.sqrt(np.sum((xyz_world - origin), axis=1) ** 2), 99.9)
         self.origin = torch.tensor(origin, dtype=torch.float32)
