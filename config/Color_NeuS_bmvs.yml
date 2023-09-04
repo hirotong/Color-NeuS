@@ -1,6 +1,6 @@
 DATASET:
   TYPE: BlendedMVS
-  DATA_ROOT: ./data
+  DATA_ROOT: /home/ton068/dataset
 
 DATA_PRESET:
   FX_ONLY: False
