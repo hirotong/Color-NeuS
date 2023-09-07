@@ -17,7 +17,7 @@ from lib.utils.etqdm import etqdm
 from lib.models.renderers import build_renderer
 from lib.models.model_abstraction import ModuleAbstract
 from lib.models.tools.camera_net import Focal_Net, Pose_Net
-from lib.models.tools.ray_utils import get_rays_multicam, get_rays_at, near_far_from_sphere
+from lib.models.tools.ray_utils import get_rays_multicam, get_rays_at, near_far_from_sphere, center_radius_from_poses
 from lib.models.tools.viztools import cmap, plot_camera_scene, plot_cameras_track
 
 
@@ -201,7 +201,8 @@ class NeuS_Trainer(ModuleAbstract, nn.Module):
 
             if step_idx % (self.cfg.TRAIN.LOG_INTERVAL * 50) == 0:
                 all_poses = self.pose_net(torch.arange(self.n_imgs))
-                cams_img = plot_camera_scene(all_poses, None, self.radius.cpu().numpy(), f'Iteration_{step_idx}')
+                _, radius = center_radius_from_poses(all_poses)
+                cams_img = plot_camera_scene(all_poses, None, radius, f'Iteration_{step_idx}')
                 self.summary.add_image('poses', cams_img, step_idx)
                 cam_track = plot_cameras_track(all_poses)
                 self.summary.add_image('poses_track', cam_track, step_idx)
