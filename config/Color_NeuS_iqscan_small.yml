@@ -12,7 +12,7 @@ MODEL:
   TYPE: NeuS_Trainer
   PRETRAINED: null
   N_RAYS: 1024
-  EVAL_RAY_SIZE: 1024
+  EVAL_RAY_SIZE: 512
   NORMALIZE_DIR: True
   FOCAL_ORDER: 2
   LEARN_FOCAL: True
@@ -22,7 +22,7 @@ MODEL:
   POSE_MODE: 6d
 
   RENDERER:
-    TYPE: NeuS
+    TYPE: Color_NeuS
     N_SAMPLES: 64
     N_IMPORTANCE: 64
     UP_SAMPLE_STEPS: 4
@@ -41,14 +41,23 @@ MODEL:
       INSIDE_OUTSIDE: False
     COLOR:
       D_FEATURE: 256
-      MODE: idr
-      D_IN: 9
+      MODE: no_view_dir
+      D_IN: 6
       D_OUT: 3
       D_HIDDEN: 256
       N_LAYERS: 4
       WEIGHT_NORM: True
-      MULTIRES_VIEW: 4
+      MULTIRES_VIEW: 0
       SQUEEZE_OUT: True
+    RELIGHT:
+      D_IN: 6
+      D_OUT: 3
+      D_HIDDEN: 256
+      N_LAYERS: 4
+      Y_IN_LAYER: 3
+      MULTIRES_VIEW: 4
+      INCLUDE_GRAD: True
+      INV_SIGMOID: True
     DEVIATION:
       INIT_VAL: 0.3
 
@@ -57,6 +66,7 @@ MODEL:
     LAMBDA_FINE: 1.0
     LAMBDA_EIKONAL: 0.1
     LAMBDA_MASK: 0.0
+    LAMBDA_RELIGHT: 1.0
 
 TRAIN:
   BATCH_SIZE: 8
@@ -75,5 +85,5 @@ TRAIN:
   CONV_REPEATABLE: True
   GRAD_CLIP_ENABLED: True
   GRAD_CLIP:
-    TYPE: 2
+    TYPE: 2 
     NORM: 1.0

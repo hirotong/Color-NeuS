@@ -132,7 +132,7 @@ def plot_cameras_track(c2w):
     ax.set_ylabel("y")
     ax.set_zlabel("z")
 
-    figure = ax.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], c='r', lw=0.5)
+    figure = ax.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], c='r', marker='.', lw=0.5)
 
     img = fig2img(fig)
     plt.close(fig)

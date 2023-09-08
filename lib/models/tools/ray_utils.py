@@ -12,6 +12,24 @@ def near_far_from_sphere(rays_o, rays_d):
     far = mid + 1.0
     return near.squeeze(), far.squeeze()
 
+def center_radius_from_poses(poses):
+    ''' Get the center poisition and radius supposing all cameras looking at the same point '''
+    rays_o = poses[:, :3, 3:4].detach().cpu().numpy()
+    rays_d = poses[:, :3, 2:3].detach().cpu().numpy()
+    def min_line_dist(rays_o, rays_d):
+        A_i = np.eye(3) - rays_d * np.transpose(rays_d, [0, 2, 1])
+        b_i = -A_i @ rays_o
+        pt_mindist = np.squeeze(-np.linalg.inv((np.transpose(A_i, [0, 2, 1]) @ A_i).mean(0)) @ (b_i).mean(0))
+        return pt_mindist
+    
+    center_pt = min_line_dist(rays_o, rays_d)
+    rays_o = rays_o - center_pt[None]
+    
+    radius = np.mean(np.linalg.norm(rays_o, axis=1), axis=0, keepdims=False)[0]
+    
+    return center_pt, radius
+    
+    
 
 def get_rays_multicam(c2w,
                       focal,
