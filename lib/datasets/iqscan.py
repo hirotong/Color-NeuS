@@ -82,6 +82,8 @@ class IQScan(torch.utils.data.Dataset):
                 im.id = i
                 im.name = img_names[i]
                 imdata[i] = im
+                
+        imdata = sorted(imdata.items(), reverse=False)
             
         for i, (_, im) in enumerate(imdata):
             R = im.qvec2rotmat()
