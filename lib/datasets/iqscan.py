@@ -27,17 +27,20 @@ class IQScan(torch.utils.data.Dataset):
         self.std = 0.5
         self.data_root = cfg.DATA_ROOT
         self.obj_name = cfg.OBJ_ID
+        self.n_imgs = cfg.get("num_images", 324)
         self.fx_only = cfg.DATA_PRESET.get("FX_ONLY", False)
         self.include_mask = cfg.DATA_PRESET.get("INCLUDE_MASK", False)
         self.opengl_sys = cfg.DATA_PRESET.get("OPENGL_SYS", False)
         radius_ratio = cfg.get("RADIUS_RATIO", 1.5)
         self.data_path = os.path.join(self.data_root, "IQscan", self.obj_name)
         self.img_dir = os.path.join(self.data_path, "images")
+        img_names = [img_name for img_name in os.listdir(self.img_dir)]
+        img_names = sorted(img_names)
 
         camdata = read_cameras_binary(os.path.join(self.data_path, "sparse/0/cameras.bin"))
         world_pts = read_points3d_binary(os.path.join(self.data_path, "sparse/0/points3D.bin"))
         imdata = read_images_binary(os.path.join(self.data_path, "sparse/0/images.bin"))
-        imdata = sorted(imdata.items(), reverse=False)
+        # imdata = sorted(imdata.items(), reverse=False)
 
         # xyz_world = np.array([world_pts[p_id].xyz for p_id in world_pts])
         pcd = trimesh.load(os.path.join(self.data_path, "sparse_points_interest.ply"))
@@ -72,6 +75,14 @@ class IQScan(torch.utils.data.Dataset):
         self.poses = []
         self.image_paths = []
         self.img_ids = []
+            
+        for i in range(1, self.n_imgs + 1):
+            if not i in imdata.keys():
+                im = imdata[i-1]
+                im.id = i
+                im.name = img_names[i]
+                imdata[i] = im
+            
         for i, (_, im) in enumerate(imdata):
             R = im.qvec2rotmat()
             t = im.tvec.reshape(3, 1)

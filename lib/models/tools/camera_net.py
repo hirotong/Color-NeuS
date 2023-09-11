@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from lib.utils.transform import aa_to_rotmat, rot6d_to_rotmat
+from lib.utils.transform import aa_to_rotmat, rot6d_to_rotmat, rot6d_to_aa
 
 
 # This code is borrow from https://github.com/ActiveVisionLab/nerfmm.git
@@ -127,6 +127,30 @@ class Pose_Net(nn.Module):
             c2w = c2w @ self.init_c2w[cam_ids]
 
         return c2w
+    
+    def _cal_reg_loss(self, cam_ids):
+        r = self.r[cam_ids] # (N, 3) axis-angle or (N, 6) 
+        t = self.t[cam_ids] # (N, 3)
+        
+        if r.requires_grad:
+            if self.pose_mode == "6d":
+                r = rot6d_to_aa(r)
+            reg_r = torch.mean(torch.linalg.norm(r, dim=-1), dim=0)
+        else:
+            reg_r = torch.tensor([0.], device=r.device, requires_grad=False)
+            
+        if t.requires_grad:
+            reg_t = torch.mean(torch.linalg.norm(t, dim=-1), 0)
+        else:
+            reg_t = torch.tensor([0.], device=t.device, requires_grad=False)
+        
+        return reg_r + reg_t      
+    
+    def cal_loss(self, cam_ids):
+        
+        reg_loss = self._cal_reg_loss(cam_ids)
+        
+        return reg_loss
 
 
 def convert3x4_4x4(input):
