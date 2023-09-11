@@ -233,8 +233,8 @@ class NeuS_Trainer(ModuleAbstract, nn.Module):
 
             if step_idx % (self.cfg.TRAIN.LOG_INTERVAL * 50) == 0:
                 all_poses = self.pose_net(torch.arange(self.n_imgs))
-                all_poses = all_poses.detach().cpu().numpy()
-                _, radius = center_radius_from_poses(all_poses)
+                # all_poses = all_poses.detach().cpu().numpy()
+                _, radius = center_radius_from_poses(all_poses.detach().cpu().numpy())
                 cams_img = plot_camera_scene(all_poses, None, radius, f"Iteration_{step_idx}")
                 self.summary.add_image("poses", cams_img, step_idx)
                 cam_track = plot_cameras_track(all_poses)
