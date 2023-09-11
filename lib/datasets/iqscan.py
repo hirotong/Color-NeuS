@@ -14,6 +14,7 @@ from lib.utils.read_cameras import (
     read_cameras_binary,
     read_images_binary,
     read_points3d_binary,
+    Image,
 )
 from lib.utils.transform import load_K_Rt_from_P
 
@@ -75,16 +76,22 @@ class IQScan(torch.utils.data.Dataset):
         self.poses = []
         self.image_paths = []
         self.img_ids = []
-            
+
         for i in range(1, self.n_imgs + 1):
             if not i in imdata.keys():
-                im = imdata[i-1]
-                im.id = i
-                im.name = img_names[i]
-                imdata[i] = im
-                
+                im = imdata[i - 1]
+                imdata[i] = Image(
+                    id=i,
+                    qvec=im.qvec,
+                    tvec=im.tvec,
+                    camera_id=im.camera_id,
+                    name=img_names[i],
+                    xys=im.xys,
+                    point3D_ids=im.point3D_ids,
+                )
+
         imdata = sorted(imdata.items(), reverse=False)
-            
+
         for i, (_, im) in enumerate(imdata):
             R = im.qvec2rotmat()
             t = im.tvec.reshape(3, 1)
