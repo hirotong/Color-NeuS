@@ -21,9 +21,10 @@ from lib.models.tools.ray_utils import (
     get_rays_multicam,
     get_rays_at,
     near_far_from_sphere,
-    center_radius_from_poses,
 )
 from lib.models.tools.viztools import cmap, plot_camera_scene, plot_cameras_track
+
+from lib.models.tools.geometry import center_radius_from_poses
 
 
 @MODEL.register_module()

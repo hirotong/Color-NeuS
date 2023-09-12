@@ -1,6 +1,8 @@
-import torch
-import numpy as np
 from typing import List
+
+import numpy as np
+import torch
+
 from lib.utils.logger import logger
 
 
@@ -12,42 +14,18 @@ def near_far_from_sphere(rays_o, rays_d):
     far = mid + 1.0
     return near.squeeze(), far.squeeze()
 
-def center_radius_from_poses(poses):
-    ''' Get the center poisition and radius supposing all cameras looking at the same point '''
-    rays_o = poses[:, :3, 3:4]
-    rays_d = poses[:, :3, 2:3]
-    def min_line_dist(rays_o, rays_d):
-        if isinstance(rays_o, np.ndarray) and isinstance(rays_d, np.ndarray):
-            A_i = np.eye(3) - rays_d * np.transpose(rays_d, [0, 2, 1])
-            b_i = -A_i @ rays_o
-            pt_mindist = np.squeeze(-np.linalg.inv((np.transpose(A_i, [0, 2, 1]) @ A_i).mean(0)) @ (b_i).mean(0))
-        else:
-            A_i = rays_o.new_ones((3, )) - rays_d * rays_d.permute(0, 2, 1)
-            b_i = -A_i @ rays_o
-            pt_mindist = torch.squeeze(-torch.linalg.inv((torch.transpose(A_i, 1, 2) @ A_i).mean(0)) @ (b_i).mean(0))
-        return pt_mindist
-    
-    center_pt = min_line_dist(rays_o, rays_d)
-    rays_o = rays_o - center_pt[None]
-    
-    if isinstance(rays_o, np.ndarray):
-        radius = np.mean(np.linalg.norm(rays_o, axis=1))
-    else:
-        radius = torch.mean(torch.linalg.norm(rays_o, dim=1))
-    
-    return center_pt, radius
-    
-    
 
-def get_rays_multicam(c2w,
-                      focal,
-                      image,
-                      n_rays,
-                      normalize=False,
-                      mask=None,
-                      mask_rate=0.9,
-                      return_mask=False,
-                      opengl=False):
+def get_rays_multicam(
+    c2w,
+    focal,
+    image,
+    n_rays,
+    normalize=False,
+    mask=None,
+    mask_rate=0.9,
+    return_mask=False,
+    opengl=False,
+):
     """
     Generate random n rays at world space from N cameras
         focal: [2]
@@ -68,14 +46,19 @@ def get_rays_multicam(c2w,
         y, z = 1, 1
 
     # important: indexing='xy'
-    i, j = torch.meshgrid(torch.linspace(0, W - 1, W), torch.linspace(0, H - 1, H), indexing='xy')
+    i, j = torch.meshgrid(torch.linspace(0, W - 1, W), torch.linspace(0, H - 1, H), indexing="xy")
     i = i.to(device)
     j = j.to(device)
-    dirs = torch.stack([(i - W * 0.5) / focal[0], y * (j - H * 0.5) / focal[1], z * torch.ones_like(i).to(device)], -1)
+    dirs = torch.stack(
+        [(i - W * 0.5) / focal[0], y * (j - H * 0.5) / focal[1], z * torch.ones_like(i).to(device)],
+        -1,
+    )
     if normalize:
         dirs = dirs / torch.norm(dirs, dim=-1).unsqueeze(-1)  # [H, W, 3]
     dirs = dirs.unsqueeze(0).repeat(N_cam, 1, 1, 1)  # [N, H, W, 3]
-    rays_d_all = torch.sum(dirs[..., np.newaxis, :] * c2w[:, np.newaxis, np.newaxis, :3, :3], -1)  # [N, H, W, 3]
+    rays_d_all = torch.sum(
+        dirs[..., np.newaxis, :] * c2w[:, np.newaxis, np.newaxis, :3, :3], -1
+    )  # [N, H, W, 3]
     rays_o_all = c2w[:, np.newaxis, np.newaxis, :3, -1].expand(rays_d_all.shape)  # [N, H, W, 3]
     rays_o_all = rays_o_all.reshape(-1, 3)  # [N*H*W, 3]
     rays_d_all = rays_d_all.reshape(-1, 3)  # [N*H*W, 3]
@@ -97,7 +80,9 @@ def get_rays_multicam(c2w,
         rand_invalid_index = torch.randperm(invalid_index.shape[0])
         rand_index_mask = rand_valid_index[:n_rays_in_mask]
         rand_index_bkg = rand_invalid_index[:n_rays_in_bkg]
-        rays_idx_raw = torch.cat([valide_index[rand_index_mask], invalid_index[rand_index_bkg]], dim=-1)  # [n_rays]
+        rays_idx_raw = torch.cat(
+            [valide_index[rand_index_mask], invalid_index[rand_index_bkg]], dim=-1
+        )  # [n_rays]
         rays_idx_raw = rays_idx_raw[torch.randperm(rays_idx_raw.shape[0])]  # NOTE: keep rand
         rays_idx = rays_idx_raw.unsqueeze(-1).repeat(1, 3)
 
@@ -125,7 +110,7 @@ def get_rays_at(c2w, focal, H, W, normalize=False, opengl=False):
     assert c2w.dim() == 2, "this is a sigle camera implementation"
     device = c2w.device
     # important: indexing='xy'
-    i, j = torch.meshgrid(torch.linspace(0, W - 1, W), torch.linspace(0, H - 1, H), indexing='xy')
+    i, j = torch.meshgrid(torch.linspace(0, W - 1, W), torch.linspace(0, H - 1, H), indexing="xy")
     i = i.to(device)
     j = j.to(device)
 
@@ -134,7 +119,10 @@ def get_rays_at(c2w, focal, H, W, normalize=False, opengl=False):
     else:
         y, z = 1, 1
 
-    dirs = torch.stack([(i - 0.5 * W) / focal[0], y * (j - 0.5 * H) / focal[1], z * torch.ones_like(i).to(device)], -1)
+    dirs = torch.stack(
+        [(i - 0.5 * W) / focal[0], y * (j - 0.5 * H) / focal[1], z * torch.ones_like(i).to(device)],
+        -1,
+    )
     if normalize:
         dirs = dirs / torch.norm(dirs, dim=-1).unsqueeze(-1)  # follow pixel nerf
     # Rotate ray directions from camera frame to the world frame
@@ -156,7 +144,7 @@ def sample_pdf(bins, weights, n_samples, det=False):
     cdf = torch.cat([torch.zeros_like(cdf[..., :1]).to(device), cdf], -1)
     # Take uniform samples
     if det:
-        u = torch.linspace(0. + 0.5 / n_samples, 1. - 0.5 / n_samples, steps=n_samples).to(device)
+        u = torch.linspace(0.0 + 0.5 / n_samples, 1.0 - 0.5 / n_samples, steps=n_samples).to(device)
         u = u.expand(list(cdf.shape[:-1]) + [n_samples])
     else:
         u = torch.rand(list(cdf.shape[:-1]) + [n_samples]).to(device)
@@ -172,7 +160,7 @@ def sample_pdf(bins, weights, n_samples, det=False):
     cdf_g = torch.gather(cdf.unsqueeze(1).expand(matched_shape), 2, inds_g)
     bins_g = torch.gather(bins.unsqueeze(1).expand(matched_shape), 2, inds_g)
 
-    denom = (cdf_g[..., 1] - cdf_g[..., 0])
+    denom = cdf_g[..., 1] - cdf_g[..., 0]
     denom = torch.where(denom < 1e-5, torch.ones_like(denom).to(device), denom)
     t = (u - cdf_g[..., 0]) / denom
     samples = bins_g[..., 0] + t * (bins_g[..., 1] - bins_g[..., 0])

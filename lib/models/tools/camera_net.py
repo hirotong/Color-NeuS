@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from lib.utils.transform import aa_to_rotmat, rot6d_to_rotmat, rot6d_to_aa
+from lib.models.tools.geometry import *
 
 
 # This code is borrow from https://github.com/ActiveVisionLab/nerfmm.git
@@ -92,6 +93,7 @@ class Pose_Net(nn.Module):
         """
         super(Pose_Net, self).__init__()
         self.num_cams = num_cams
+        self.num_groups = 9 # iqscan dataset
         self.init_c2w = None
         self.pose_mode = pose_mode
         if init_c2w is not None:
@@ -128,7 +130,7 @@ class Pose_Net(nn.Module):
 
         return c2w
     
-    def _cal_reg_loss(self, cam_ids):
+    def _l2_reg_loss(self, cam_ids):
         r = self.r[cam_ids] # (N, 3) axis-angle or (N, 6) 
         t = self.t[cam_ids] # (N, 3)
         
@@ -144,13 +146,94 @@ class Pose_Net(nn.Module):
         else:
             reg_t = torch.tensor([0.], device=t.device, requires_grad=False)
         
-        return reg_r + reg_t      
+        return reg_r + reg_t     
+    
+    
+    def geometric_loss(self):
+        cam_ids = torch.arange(self.num_cams)
+        all_poses = self.forward(cam_ids)
+        pose_groups = torch.chunk(all_poses, self.num_groups, dim=0)
+        
+        plane_reg_loss = []
+        circle_reg_loss = []
+        view_center_loss = []
+        up_align_loss = []
+        
+        for i, pose_group in enumerate(pose_groups):
+            cam_locs = pose_group[:, :3, 3].detach().cpu().numpy()
+            
+            C, n, r, d = fit_circle_3d(cam_locs)
+            C = torch.as_tensor(C, device=all_poses.device)
+            n = torch.as_tensor(n, device=all_poses.device)
+            r = torch.as_tensor(r, device=all_poses.device)
+            d = torch.as_tensor(d, device=all_poses.device)
+            # plane regularization
+            plane_reg_loss.append(self._plane_reg_loss(pose_group, n, d))
+            # circle reg loss
+            circle_reg_loss.append(self._circle_reg_loss(pose_group, C, r))
+            # view center loss
+            view_center_loss.append(self._view_center_loss(pose_group))
+            # up vector alignment
+            up_align_loss.append(self._up_vector_align_loss(pose_group, n))
+            
+        plane_reg_loss = torch.mean(torch.stack(plane_reg_loss))
+        circle_reg_loss = torch.mean(torch.stack(circle_reg_loss))
+        view_center_loss = torch.mean(torch.stack(view_center_loss))
+        up_align_loss = torch.mean(torch.stack(up_align_loss))
+        
+        return plane_reg_loss + circle_reg_loss + view_center_loss + up_align_loss
+    
+    def _up_vector_align_loss(self, poses, normal):
+        
+        if normal.ndim == 1:
+            normal = normal[None]
+        
+        right_vec, up_vec, view_vec = poses[:, :3, 0], -poses[:, :3, 1], poses[:, :3, 2]
+        
+        up_loss = torch.mean(torch.abs(torch.sum(up_vec * torch.cross(view_vec, normal), dim=1)))
+        
+        return up_loss
+        
+        
+    def _plane_reg_loss(self, poses, normal, d):
+        # plane regularization
+        cam_locs = poses[:, :3, 3]
+        p_distance = point_plane_distance(cam_locs, normal, d)
+
+        plane_reg_loss = p_distance.mean()
+        
+        return plane_reg_loss
+    
+    
+    def _circle_reg_loss(self, poses, C, r):
+        
+        cam_locs = poses[:, :3, 3]
+        circle_reg_loss = torch.mean(torch.sum((cam_locs - C[None]) * (cam_locs - C[None]), dim=1), dim=0)
+        
+        return circle_reg_loss - r*r
+    
+    def _view_center_loss(self, poses):
+        
+        rays_o = poses[:, :3, 3]
+        rays_d = poses[:, :3, 2]
+        
+        view_center, radius = center_radius_from_poses(poses)
+        
+        view_center_distance = point_line_distance(view_center, rays_o, rays_d)
+        
+        view_center_loss = torch.mean(view_center_distance, dim=0)
+        
+        return view_center_loss
+    
+     
     
     def cal_loss(self, cam_ids):
         
-        reg_loss = self._cal_reg_loss(cam_ids)
+        # delta pose regularization
+        reg_loss = self._l2_reg_loss(cam_ids)
+        geo_loss = self.geometric_loss()
         
-        return reg_loss
+        return reg_loss + geo_loss
 
 
 def convert3x4_4x4(input):
