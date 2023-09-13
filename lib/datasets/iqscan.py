@@ -26,7 +26,7 @@ class IQScan(torch.utils.data.Dataset):
         self.name = type(self).__name__
         self.cfg = cfg
         self.std = 0.5
-        self.data_root = cfg.DATA_ROOT
+        self.data_root = os.path.expanduser(cfg.DATA_ROOT)
         self.obj_name = cfg.OBJ_ID
         self.n_imgs = cfg.get("num_images", 324)
         self.fx_only = cfg.DATA_PRESET.get("FX_ONLY", False)

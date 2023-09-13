@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from lib.utils.transform import aa_to_rotmat, rot6d_to_rotmat, rot6d_to_aa
 from lib.models.tools.geometry import *
+from lib.models.tools.viztools import *
 
 
 # This code is borrow from https://github.com/ActiveVisionLab/nerfmm.git
@@ -162,6 +163,9 @@ class Pose_Net(nn.Module):
         for i, pose_group in enumerate(pose_groups):
             cam_locs = pose_group[:, :3, 3].detach().cpu().numpy()
             
+            # if True:
+            #     cam_viz = plot_camera_scene(pose_group, None)
+            
             C, n, r, d = fit_circle_3d(cam_locs)
             C = torch.as_tensor(C, device=all_poses.device)
             n = torch.as_tensor(n, device=all_poses.device)
@@ -181,7 +185,9 @@ class Pose_Net(nn.Module):
         view_center_loss = torch.mean(torch.stack(view_center_loss))
         up_align_loss = torch.mean(torch.stack(up_align_loss))
         
-        return plane_reg_loss + circle_reg_loss + view_center_loss + up_align_loss
+        # TODO: view center loss is not work well. The center is too unstable.
+        
+        return plane_reg_loss + circle_reg_loss # + up_align_loss
     
     def _up_vector_align_loss(self, poses, normal):
         

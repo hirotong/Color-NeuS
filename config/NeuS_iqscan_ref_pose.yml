@@ -1,6 +1,6 @@
 DATASET:
   TYPE: IQScan
-  DATA_ROOT: ~/dataset
+  DATA_ROOT: /home/ton068/dataset
   RADIUS_RATIO: 1.2
 
 DATA_PRESET:
@@ -22,7 +22,7 @@ MODEL:
   POSE_MODE: 6d
 
   RENDERER:
-    TYPE: Color_NeuS
+    TYPE: NeuS
     N_SAMPLES: 64
     N_IMPORTANCE: 64
     UP_SAMPLE_STEPS: 4
@@ -41,23 +41,14 @@ MODEL:
       INSIDE_OUTSIDE: False
     COLOR:
       D_FEATURE: 256
-      MODE: no_view_dir
-      D_IN: 6
+      MODE: idr
+      D_IN: 9
       D_OUT: 3
       D_HIDDEN: 256
       N_LAYERS: 4
       WEIGHT_NORM: True
-      MULTIRES_VIEW: 0
-      SQUEEZE_OUT: True
-    RELIGHT:
-      D_IN: 6
-      D_OUT: 3
-      D_HIDDEN: 256
-      N_LAYERS: 4
-      Y_IN_LAYER: 3
       MULTIRES_VIEW: 4
-      INCLUDE_GRAD: True
-      INV_SIGMOID: True
+      SQUEEZE_OUT: True
     DEVIATION:
       INIT_VAL: 0.3
 
@@ -66,12 +57,11 @@ MODEL:
     LAMBDA_FINE: 1.0
     LAMBDA_EIKONAL: 0.1
     LAMBDA_MASK: 0.0
-    LAMBDA_RELIGHT: 1.0
     LAMBDA_POSE: 1.0
 
 TRAIN:
   BATCH_SIZE: 8
-  ITERATIONS: 100000 #100000
+  ITERATIONS: 100000
   OPTIMIZE:
     TYPE: adam
     LR: 0.0005
@@ -86,5 +76,5 @@ TRAIN:
   CONV_REPEATABLE: True
   GRAD_CLIP_ENABLED: True
   GRAD_CLIP:
-    TYPE: 2 
+    TYPE: 2
     NORM: 1.0

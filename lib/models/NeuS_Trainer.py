@@ -232,7 +232,7 @@ class NeuS_Trainer(ModuleAbstract, nn.Module):
             for k, v in loss_dict.items():
                 self.summary.add_scalar(f"{k}", v.item(), step_idx)
 
-            if step_idx % (self.cfg.TRAIN.LOG_INTERVAL * 50) == 0:
+            if step_idx % (self.cfg.TRAIN.LOG_INTERVAL * 5) == 0:
                 all_poses = self.pose_net(torch.arange(self.n_imgs))
                 # all_poses = all_poses.detach().cpu().numpy()
                 _, radius = center_radius_from_poses(all_poses.detach().cpu().numpy())
@@ -240,6 +240,14 @@ class NeuS_Trainer(ModuleAbstract, nn.Module):
                 self.summary.add_image("poses", cams_img, step_idx)
                 cam_track = plot_cameras_track(all_poses)
                 self.summary.add_image("poses_track", cam_track, step_idx)
+
+                # plot each group of cams
+                all_poses_chunks = torch.chunk(all_poses, 9)
+                for i, pose_chunk in enumerate(all_poses_chunks, start=1):
+                    cams_img = plot_camera_scene(pose_chunk, None, radius, f"Iteration_{step_idx}_{i}")
+                    self.summary.add_image(f"poses_{i}", cams_img, step_idx)
+                    cam_track = plot_cameras_track(pose_chunk)
+                    self.summary.add_image(f"pose_track_{i}", cam_track, step_idx)
 
         return render_dict, loss_dict
 

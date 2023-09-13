@@ -1,6 +1,6 @@
 DATASET:
   TYPE: IQScan
-  DATA_ROOT: /home/ton068/dataset
+  DATA_ROOT: /home/jinguang/dataset
   RADIUS_RATIO: 1.2
 
 DATA_PRESET:
